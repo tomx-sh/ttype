@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ttype
 
-## Getting Started
+A fullscreen, monospace editor for ANSI terminal documents, built with Next.js and CodeMirror 6.
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+```sh
+bun install
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Select text and use the toolbar to format it. With a collapsed selection, formatting applies to what you type next. The character grid can be toggled off. Lines scroll horizontally without wrapping; tabs occupy four columns. Alt-drag makes a rectangular selection.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The dashed-rectangle toolbar toggle shows terminal bounds, starting at the first character of the first line. Choose **80 × 24** (VT100), **80 × 25** (PC console), or **132 × 24** (wide terminal) with the adjacent arrow. Sizes are columns × rows. The guide uses the measured character cells and scrolls with the document, including when the document is empty. It is a visual aid: it does not insert a box, constrain typing, or change exports. Bounds are hidden in source mode.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The toolbar shows every text style directly: bold, dim, italic, underline, double underline, strikethrough, overline, blink, reverse colors, and conceal. Foreground/background controls offer palette colors and any RGB color. Concealed text is invisible in visual mode; remove the attribute or use source mode to edit it.
 
-## Learn More
+**Insert TUI characters** (the Ω icon in the toolbar) opens a dialog with box-drawing characters, blocks, shading, arrows, symbols, and ASCII characters. Click to insert at the current cursor or replace the selection. The dialog stays open for repeated insertions; close it with **Done** or Escape. Inserted characters use the current formatting and support undo/redo. The picker also works in source mode.
 
-To learn more about Next.js, take a look at the following resources:
+**Source** shows editable ANSI sequences using readable `\x1b` notation. Literal backslashes are doubled in this view so that source conversion is reversible. Switching back applies the changes to the visual document. Formatting and typing support undo/redo, including changes brought back from source mode.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Open** imports UTF-8 `.ans`, `.ansi`, or `.txt` files up to 2 MB. **Export** downloads actual ESC bytes, ready for terminal rendering:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```sh
+cat untitled.ans
+```
 
-## Deploy on Vercel
+**Copy command** copies a self-contained `printf` command for previewing the current document in sh, bash, or zsh. Paste it into your terminal to render the document. Quotes and shell syntax in the document print literally; backslashes and control characters are encoded for `printf`. The command resets formatting afterward and leaves the prompt on a fresh line. Copying requires browser clipboard access (HTTPS or localhost).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The current document and filename are saved to this browser's local storage. No account, backend, or network storage is used. Opening another file replaces the current draft. Export files you want to keep.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Shortcut | Action |
+| --- | --- |
+| ⌘/Ctrl B, I, U | Bold, italic, underline |
+| ⌘/Ctrl Z | Undo |
+| ⌘/Ctrl Shift Z | Redo |
+| ⌘/Ctrl Shift E | Toggle visual/source mode |
+| ⌘/Ctrl S | Export ANSI file |
+| Tab | Insert indentation |
+| Esc, then Tab | Move keyboard focus out of the editor |
+
+## ANSI support
+
+Visual mode handles SGR text attributes, selective resets, 16-color and 256-color input, and 24-bit RGB colors. Export normalizes colors to 24-bit RGB and ends styled output with a reset. Appearance depends on the terminal's font, palette, and supported attributes. Blink animation respects the browser's reduced-motion setting. Monospace cells align ASCII and box-drawing characters; emoji and other wide Unicode glyphs depend on the browser's font fallback.
+
+The app bundles the complete [official JetBrains Mono 2.305 variable fonts](https://github.com/JetBrains/JetBrainsMono/tree/master/fonts/variable), including box-drawing and block glyphs absent from the Google Fonts subsets. Its nominal cell spans 1320 font units per 1000 units/em, so editor rows use `line-height: 1.32` (18.48px at 14px). The `█` glyph fills that cell; vertical box strokes extend past its edges to avoid seams. Each row has a fixed cell height, and the grid follows CodeMirror's measured dimensions. The fonts' SIL Open Font License is included in `src/app/fonts/OFL.txt`.
+
+This is a document editor, not a terminal emulator. Cursor movement, screen clearing, OSC sequences (including hyperlinks), other terminal controls, and unsupported SGR attributes stay in source mode. They are preserved for editing/export; a message explains why visual mode cannot be used. Windows CRLF line endings are normalized to LF on file import.
+
+## Validation
+
+App controls use the standard shadcn `base-lyra` components configured in `components.json`, with the existing theme tokens. Install them with `bunx --bun shadcn@latest add <component>`. Custom CSS is limited to CodeMirror's cell geometry, grid, ruler, and ANSI effects; the color swatches show actual document colors. The generated label wrapper has a narrow Biome exception because its `htmlFor` is forwarded from the caller; color inputs supply matching IDs.
+
+The header's theme toggle offers Light, Dark, and System. `next-themes` follows the system preference by default and remembers explicit choices in browser storage. Both the app controls and editor use the existing light/dark theme tokens; explicit ANSI document colors remain document colors.
+
+```sh
+bun test
+bunx tsc --noEmit
+bun run lint
+bun run build
+```
+
+The tests cover ANSI parsing/serialization, color modes and resets, reversible source notation, and formatting/text undo and redo without browser automation.
