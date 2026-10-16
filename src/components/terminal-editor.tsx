@@ -19,6 +19,7 @@ import {
   EditorView,
   highlightActiveLine,
   highlightActiveLineGutter,
+  highlightWhitespace,
   keymap,
   lineNumbers,
   rectangularSelection,
@@ -26,9 +27,9 @@ import {
 import {
   Bold,
   ChevronDown,
-  ClipboardCopy,
   Code2,
   Contrast,
+  Copy,
   Download,
   Eraser,
   Eye,
@@ -37,8 +38,10 @@ import {
   Info,
   Italic,
   Omega,
+  Pilcrow,
   Redo2,
-  Sparkles,
+  Ruler,
+  Siren,
   SquareDashed,
   Strikethrough,
   SunDim,
@@ -55,19 +58,20 @@ import { TerminalColorPicker } from "@/components/terminal-color-picker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toggle } from "@/components/ui/toggle";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   type AnsiDocument,
   parseAnsi,
@@ -143,6 +147,7 @@ function editorExtensions(
     lineNumbers(),
     highlightActiveLine(),
     highlightActiveLineGutter(),
+    highlightWhitespace(),
     rectangularSelection(),
     crosshairCursor(),
     EditorState.tabSize.of(4),
@@ -232,8 +237,11 @@ export function TerminalEditor() {
   const actions = useRef({ toggle: () => {}, save: () => {} });
   const [mode, setMode] = useState<Mode>("visual");
   const [name, setName] = useState("untitled.ans");
-  const [grid, setGrid] = useState(true);
-  const [showBounds, setShowBounds] = useState(false);
+  const [viewTools, setViewTools] = useState<string[]>(["grid"]);
+  const grid = viewTools.includes("grid");
+  const showRuler = viewTools.includes("ruler");
+  const showWhitespace = viewTools.includes("whitespace");
+  const showBounds = viewTools.includes("bounds");
   const [terminalSize, setTerminalSize] = useState<
     (typeof TERMINAL_SIZES)[number]
   >(TERMINAL_SIZES[0]);
@@ -365,13 +373,19 @@ export function TerminalEditor() {
   }, []);
 
   useEffect(() => {
+    if (showRuler && ruler.current && controller.current) {
+      ruler.current.style.transform = `translateX(-${controller.current.view.scrollDOM.scrollLeft}px)`;
+    }
+  }, [showRuler]);
+
+  useEffect(() => {
     if (notice) {
       const timer = setTimeout(() => setNotice(""), 4000);
       return () => clearTimeout(timer);
     }
   }, [notice]);
 
-  function switchMode() {
+  function switchMode(focus = true) {
     const current = controller.current;
     if (!current) return;
     if (current.mode === "visual") {
@@ -413,7 +427,7 @@ export function TerminalEditor() {
     }
     setMode(current.mode);
     current.refresh();
-    current.view.focus();
+    if (focus) current.view.focus();
   }
 
   function exportFile() {
@@ -434,7 +448,7 @@ export function TerminalEditor() {
     setNotice("ANSI file exported");
   }
 
-  async function copyCommand() {
+  async function copyDocument(format: "source" | "command") {
     const current = controller.current;
     if (!current) return;
     const raw =
@@ -442,8 +456,14 @@ export function TerminalEditor() {
         ? serializeAnsi(getDocument(current.view.state))
         : rawSource(current.view.state.doc.toString());
     try {
-      await navigator.clipboard.writeText(terminalCommand(raw));
-      setNotice("Command copied — paste it into your terminal");
+      await navigator.clipboard.writeText(
+        format === "command" ? terminalCommand(raw) : readableSource(raw),
+      );
+      setNotice(
+        format === "command"
+          ? "Command copied — paste it into your terminal"
+          : "Source copied",
+      );
     } catch {
       setNotice(
         "Could not copy. Clipboard access needs HTTPS or localhost and browser permission.",
@@ -515,18 +535,33 @@ export function TerminalEditor() {
   }
 
   const source = mode === "source";
+  function setViewTool(tool: string, pressed: boolean) {
+    setViewTools((tools) =>
+      pressed
+        ? [...tools.filter((value) => value !== tool), tool]
+        : tools.filter((value) => value !== tool),
+    );
+  }
+
   const editorFocus = () => controller.current?.view.contentDOM ?? null;
 
   return (
-    <main
-      className={`flex h-dvh flex-col overflow-hidden${grid ? " has-grid" : ""}`}
+    <Tabs
+      render={<main />}
+      value={mode}
+      onValueChange={(value) => {
+        if (value !== mode) switchMode(false);
+      }}
+      className={`h-dvh gap-0 overflow-hidden${grid ? " has-grid" : ""}${showWhitespace ? " show-whitespace" : ""}`}
     >
-      <header className="flex shrink-0 flex-wrap items-center gap-2 border-b p-2">
+      <header className="relative flex shrink-0 flex-wrap items-center gap-2 border-b p-2">
         <div className="flex items-center gap-2">
           <Terminal />
           <h1>ttype</h1>
         </div>
-        <Separator orientation="vertical" className="h-5" />
+        <span aria-hidden="true" className="shrink-0 text-muted-foreground">
+          ·
+        </span>
         <Input
           className="w-44"
           aria-label="Document filename"
@@ -541,36 +576,52 @@ export function TerminalEditor() {
             }
           }}
         />
-        <ToggleGroup
-          variant="outline"
-          value={[mode]}
-          aria-label="Editor mode"
-          onValueChange={(value) => {
-            if (value[0] && value[0] !== mode) switchMode();
-          }}
-        >
-          <ToggleGroupItem value="visual" aria-label="Visual mode">
-            <Eye />
-            Visual
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="source"
-            aria-label="Source mode"
-            title="Toggle source (⌘/Ctrl Shift E)"
-          >
-            <Code2 />
-            Source
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <div className="order-last flex w-full items-center justify-center gap-2 lg:absolute lg:left-1/2 lg:w-auto lg:-translate-x-1/2">
+          <TabsList aria-label="Editor mode">
+            <TabsTrigger value="visual" aria-label="Visual mode">
+              <Eye />
+              Visual
+            </TabsTrigger>
+            <TabsTrigger
+              value="source"
+              aria-label="Source mode"
+              title="Toggle source (⌘/Ctrl Shift E)"
+            >
+              <Code2 />
+              Source
+            </TabsTrigger>
+          </TabsList>
+          <ButtonGroup aria-label="Copy document">
+            <Button
+              size="icon"
+              onClick={() => copyDocument("source")}
+              aria-label="Copy source"
+              title="Copy source"
+            >
+              <Copy />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    size="icon"
+                    aria-label="More copy options"
+                    title="More copy options"
+                  />
+                }
+              >
+                <ChevronDown />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuItem onClick={() => copyDocument("command")}>
+                  <Terminal />
+                  Copy command to preview in terminal
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </ButtonGroup>
+        </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={copyCommand}
-            title="Copy a command to preview this document in your terminal"
-          >
-            <ClipboardCopy />
-            Copy command
-          </Button>
           <Button
             variant="outline"
             onClick={() => fileInput.current?.click()}
@@ -579,7 +630,11 @@ export function TerminalEditor() {
             <Upload />
             Open
           </Button>
-          <Button onClick={exportFile} title="Export ANSI file (⌘/Ctrl S)">
+          <Button
+            variant="outline"
+            onClick={exportFile}
+            title="Export ANSI file (⌘/Ctrl S)"
+          >
             <Download />
             Export .ans
           </Button>
@@ -634,7 +689,12 @@ export function TerminalEditor() {
         >
           <Redo2 />
         </Button>
-        <Separator orientation="vertical" className="mx-1 h-5" />
+        <span
+          aria-hidden="true"
+          className="mx-1 shrink-0 text-muted-foreground"
+        >
+          ·
+        </span>
         {(
           [
             { key: "bold", label: "Bold (⌘/Ctrl B)", icon: <Bold /> },
@@ -656,7 +716,7 @@ export function TerminalEditor() {
               icon: <span className="overline">O</span>,
             },
             { key: "dim", label: "Dim", icon: <SunDim /> },
-            { key: "blink", label: "Blink", icon: <Sparkles /> },
+            { key: "blink", label: "Blink", icon: <Siren /> },
             { key: "inverse", label: "Reverse colors", icon: <Contrast /> },
             { key: "hidden", label: "Conceal", icon: <EyeOff /> },
           ] as const
@@ -672,7 +732,12 @@ export function TerminalEditor() {
             {icon}
           </Toggle>
         ))}
-        <Separator orientation="vertical" className="mx-1 h-5" />
+        <span
+          aria-hidden="true"
+          className="mx-1 shrink-0 text-muted-foreground"
+        >
+          ·
+        </span>
         {(["foreground", "background"] as const).map((target) => (
           <TerminalColorPicker
             key={target}
@@ -693,7 +758,12 @@ export function TerminalEditor() {
         >
           <Eraser />
         </Button>
-        <Separator orientation="vertical" className="mx-1 h-5" />
+        <span
+          aria-hidden="true"
+          className="mx-1 shrink-0 text-muted-foreground"
+        >
+          ·
+        </span>
         <Button
           variant="ghost"
           size="icon"
@@ -710,119 +780,152 @@ export function TerminalEditor() {
             ? "Escape codes are shown as \\x1b"
             : "Select text to style it"}
         </span>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           <Toggle
-            aria-label="Toggle terminal bounds"
-            title={`Show ${terminalSize.columns} columns × ${terminalSize.rows} rows`}
-            pressed={showBounds}
-            disabled={source}
-            onPressedChange={setShowBounds}
+            aria-label="Toggle column ruler"
+            title="Show column ruler"
+            pressed={showRuler}
+            onPressedChange={(pressed) => setViewTool("ruler", pressed)}
           >
-            <SquareDashed />
-            {terminalSize.columns} × {terminalSize.rows}
+            <Ruler />
+            Col
           </Toggle>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Choose terminal size"
-                  title="Choose terminal size"
-                  disabled={source}
-                />
-              }
-            >
-              <ChevronDown />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-56"
-              finalFocus={editorFocus}
-            >
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Columns × rows</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={terminalSize.id}
-                  onValueChange={(value) => {
-                    const preset = TERMINAL_SIZES.find(
-                      (size) => size.id === value,
-                    );
-                    if (preset) {
-                      setTerminalSize(preset);
-                      setShowBounds(true);
-                    }
-                  }}
-                >
-                  {TERMINAL_SIZES.map((size) => (
-                    <DropdownMenuRadioItem key={size.id} value={size.id}>
-                      {size.label}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Toggle
+            aria-label="Toggle whitespace"
+            title="Show spaces and tabs as dots"
+            pressed={showWhitespace}
+            onPressedChange={(pressed) => setViewTool("whitespace", pressed)}
+          >
+            <Pilcrow />
+            Blanks
+          </Toggle>
           <Toggle
             aria-label="Toggle character grid"
             title="Toggle character grid"
             pressed={grid}
-            onPressedChange={setGrid}
+            onPressedChange={(pressed) => setViewTool("grid", pressed)}
           >
             <Grid2X2 />
             Grid
           </Toggle>
+          <ButtonGroup aria-label="Terminal bounds">
+            <Toggle
+              variant="outline"
+              aria-label="Toggle terminal bounds"
+              title={`Show ${terminalSize.columns} columns × ${terminalSize.rows} rows`}
+              pressed={showBounds}
+              disabled={source}
+              onPressedChange={(pressed) => setViewTool("bounds", pressed)}
+            >
+              <SquareDashed />
+              {terminalSize.columns} × {terminalSize.rows}
+            </Toggle>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Choose terminal size"
+                    title="Choose terminal size"
+                    disabled={source}
+                  />
+                }
+              >
+                <ChevronDown />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-56"
+                finalFocus={editorFocus}
+              >
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Columns × rows</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={terminalSize.id}
+                    onValueChange={(value) => {
+                      const preset = TERMINAL_SIZES.find(
+                        (size) => size.id === value,
+                      );
+                      if (preset) {
+                        setTerminalSize(preset);
+                        setViewTool("bounds", true);
+                      }
+                    }}
+                  >
+                    {TERMINAL_SIZES.map((size) => (
+                      <DropdownMenuRadioItem key={size.id} value={size.id}>
+                        {size.label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </ButtonGroup>
         </div>
       </div>
 
-      {notice && (
-        <Alert>
-          <Info />
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      )}
-      {sourceError && (
-        <Alert variant="destructive">
-          <TriangleAlert />
-          <AlertDescription>{sourceError}</AlertDescription>
-        </Alert>
-      )}
-      <div
-        className={`editor-workspace relative flex min-h-0 flex-1 flex-col${showBounds && !source ? " has-terminal-guide" : ""}`}
-        style={
-          {
-            "--terminal-columns": terminalSize.columns,
-            "--terminal-rows": terminalSize.rows,
-          } as CSSProperties
-        }
+      <TabsContent
+        value={mode}
+        keepMounted
+        className="flex min-h-0 flex-1 flex-col"
       >
+        {notice && (
+          <Alert>
+            <Info />
+            <AlertDescription>{notice}</AlertDescription>
+          </Alert>
+        )}
+        {sourceError && (
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertDescription>{sourceError}</AlertDescription>
+          </Alert>
+        )}
         <div
-          className="column-ruler relative flex h-8 shrink-0 items-center overflow-hidden border-b text-muted-foreground"
-          aria-hidden="true"
+          className={`editor-workspace relative flex min-h-0 flex-1 flex-col${showBounds && !source ? " has-terminal-guide" : ""}`}
+          style={
+            {
+              "--terminal-columns": terminalSize.columns,
+              "--terminal-rows": terminalSize.rows,
+            } as CSSProperties
+          }
         >
-          <span className="ruler-corner flex h-full shrink-0 items-center bg-background">
-            {source ? "ESC" : "COL"}
-          </span>
-          <div className="flex h-full min-w-0 flex-1 items-center overflow-hidden">
+          {showRuler && (
             <div
-              ref={ruler}
-              className="ruler-numbers flex shrink-0 whitespace-pre"
+              className="column-ruler relative flex h-8 shrink-0 items-center overflow-hidden border-b text-muted-foreground"
+              aria-hidden="true"
             >
-              {Array.from({ length: 30 }, (_, i) => (i + 1) * 10).map(
-                (column) => (
-                  <span key={column}>{String(column).padStart(10, "·")}</span>
-                ),
-              )}
+              <span className="ruler-corner flex h-full shrink-0 items-center bg-background">
+                {source ? "ESC" : "COL"}
+              </span>
+              <div className="flex h-full min-w-0 flex-1 items-center overflow-hidden">
+                <div
+                  ref={ruler}
+                  className="ruler-numbers flex shrink-0 whitespace-pre"
+                >
+                  {Array.from({ length: 30 }, (_, i) => (i + 1) * 10).map(
+                    (column) => (
+                      <span key={column}>
+                        {String(column).padStart(10, "·")}
+                      </span>
+                    ),
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+          <div ref={host} className="editor-host relative min-h-0 flex-1" />
         </div>
-        <div ref={host} className="editor-host relative min-h-0 flex-1" />
-      </div>
+      </TabsContent>
 
       <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
         <div className="flex items-center gap-3">
           <span>{saveStatus}</span>
-          <Separator orientation="vertical" className="h-3" />
+          <span aria-hidden="true" className="shrink-0 text-muted-foreground">
+            ·
+          </span>
           <span>
             Ln {snapshot.line}, Col {snapshot.column}
           </span>
@@ -832,7 +935,9 @@ export function TerminalEditor() {
           <span>
             {snapshot.lines} lines · {snapshot.characters} chars
           </span>
-          <Separator orientation="vertical" className="h-3" />
+          <span aria-hidden="true" className="shrink-0 text-muted-foreground">
+            ·
+          </span>
           <span>UTF-8</span>
           <Badge variant="outline">ANSI SGR</Badge>
         </div>
@@ -843,6 +948,6 @@ export function TerminalEditor() {
         onInsert={insertCharacter}
         editorFocus={editorFocus}
       />
-    </main>
+    </Tabs>
   );
 }

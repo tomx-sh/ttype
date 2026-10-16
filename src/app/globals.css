@@ -166,6 +166,22 @@
   height: 1lh;
   padding: 0 32px 0 18px;
 }
+.editor-host .cm-highlightSpace,
+.editor-host .cm-highlightTab {
+  background-image: none;
+}
+.show-whitespace .editor-host .cm-highlightSpace,
+.show-whitespace .editor-host .cm-highlightTab {
+  /* Paint dots without replacing text or changing character/tab widths. */
+  background-image: radial-gradient(
+    circle at center,
+    var(--muted-foreground) 0.7px,
+    transparent 0.8px
+  );
+  background-size: var(--cell-width, 1ch) 100%;
+  background-position: left center;
+  background-repeat: repeat-x;
+}
 .has-terminal-guide .editor-host .cm-content {
   position: relative;
   /* Keep the whole guide scrollable even in an empty document. The padding

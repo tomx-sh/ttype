@@ -9,6 +9,8 @@ bun dev
 
 Select text and use the toolbar to format it. With a collapsed selection, formatting applies to what you type next. The character grid can be toggled off. Lines scroll horizontally without wrapping; tabs occupy four columns. Alt-drag makes a rectangular selection.
 
+Switch between **Visual** and **Source** with the shadcn tabs in the header. **Col** toggles the column ruler, hidden by default. **Blanks** toggles dots for spaces and each occupied tab cell, also off by default. Whitespace markers are display decorations, so copying and exporting preserve the original spaces and tabs.
+
 The dashed-rectangle toolbar toggle shows terminal bounds, starting at the first character of the first line. Choose **80 × 24** (VT100), **80 × 25** (PC console), or **132 × 24** (wide terminal) with the adjacent arrow. Sizes are columns × rows. The guide uses the measured character cells and scrolls with the document, including when the document is empty. It is a visual aid: it does not insert a box, constrain typing, or change exports. Bounds are hidden in source mode.
 
 The toolbar shows every text style directly: bold, dim, italic, underline, double underline, strikethrough, overline, blink, reverse colors, and conceal. Foreground/background controls offer palette colors and any RGB color. Concealed text is invisible in visual mode; remove the attribute or use source mode to edit it.
@@ -23,7 +25,7 @@ The toolbar shows every text style directly: bold, dim, italic, underline, doubl
 cat untitled.ans
 ```
 
-**Copy command** copies a self-contained `printf` command for previewing the current document in sh, bash, or zsh. Paste it into your terminal to render the document. Quotes and shell syntax in the document print literally; backslashes and control characters are encoded for `printf`. The command resets formatting afterward and leaves the prompt on a fresh line. Copying requires browser clipboard access (HTTPS or localhost).
+The primary **Copy source** icon copies readable ANSI source, using the same `\x1b` notation as Source mode. Its adjacent dropdown offers **Copy command to preview in terminal**, which copies a self-contained `printf` command for sh, bash, or zsh. Paste the command into your terminal to render the document. Quotes and shell syntax in the document print literally; backslashes and control characters are encoded for `printf`. The command resets formatting afterward and leaves the prompt on a fresh line. Copying requires browser clipboard access (HTTPS or localhost).
 
 The current document and filename are saved to this browser's local storage. No account, backend, or network storage is used. Opening another file replaces the current draft. Export files you want to keep.
 

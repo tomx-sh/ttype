@@ -31,6 +31,14 @@
   },
   "overrides": [
     {
+      "includes": ["src/components/ui/button-group.tsx"],
+      "linter": {
+        "rules": {
+          "a11y": { "useSemanticElements": "off" }
+        }
+      }
+    },
+    {
       "includes": ["src/components/ui/label.tsx"],
       "linter": {
         "rules": {
