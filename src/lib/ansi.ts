@@ -222,13 +222,30 @@ export function rawSource(readable: string): string {
   );
 }
 
-export const WELCOME = `${ESC}[1;38;2;181;232;144mHello, terminal.${ESC}[0m
+export const WELCOME = `\x1b[0;1;38;2;86;156;214mttype — text with character.\x1b[0m
+A small space for terminal text. Try editing anything below.
+\x1b[0;2m─────────────────────────────────────────────────────────────────────\x1b[0;1m
+\x1b[0m
+\x1b[0;1mBold\x1b[0m  \x1b[0;2mDim\x1b[0m  \x1b[0;3mItalic\x1b[0m  \x1b[0;4mUnder\x1b[0m  \x1b[0;21mDouble\x1b[0m \x1b[0;9mStrike\x1b[0m  \x1b[0;53mOver\x1b[0m  \x1b[0;7m Inverse \x1b[0m  \x1b[0;38;2;24;27;32;48;2;255;220;150m Highlight \x1b[0m
+Concealed: [\x1b[0;8msecret\x1b[0m] ← reveal the text in Source.
 
-A small space for text with character.
-Write something. Select it. Make it yours.
+\x1b[0;38;2;24;27;32;48;2;255;139;148m red \x1b[0m \x1b[0;38;2;24;27;32;48;2;255;220;150m gold \x1b[0m \x1b[0;38;2;24;27;32;48;2;181;232;144m green \x1b[0m \x1b[0;38;2;24;27;32;48;2;137;224;232m cyan \x1b[0m \x1b[0;38;2;24;27;32;48;2;138;201;255m blue \x1b[0m \x1b[0;38;2;24;27;32;48;2;228;163;245m violet \x1b[0m
+RGB  \x1b[0;38;2;224;108;117m█\x1b[0;38;2;229;156;107m█\x1b[0;38;2;229;192;123m█\x1b[0;38;2;152;195;121m█\x1b[0;38;2;86;182;194m█\x1b[0;38;2;97;175;239m█\x1b[0;38;2;198;120;221m█\x1b[0m  256-color  \x1b[0;38;2;0;135;255m█\x1b[0;38;2;95;135;255m█\x1b[0;38;2;135;135;255m█\x1b[0;38;2;175;135;255m█\x1b[0;38;2;215;135;255m█\x1b[0m
 
-${ESC}[38;2;138;201;255mColor${ESC}[0m  ${ESC}[1mBold${ESC}[0m  ${ESC}[3mItalic${ESC}[0m  ${ESC}[4mUnderline${ESC}[0m  ${ESC}[9mStrikethrough${ESC}[0m
+╭────────────────────────────────────────────────────────────────────╮
+│  \x1b[0;1mTERMINAL STATUS\x1b[0m                                                   │
+│  \x1b[0;5;38;2;76;175;80m● LIVE\x1b[0m  ·  This indicator blinks (if your terminal is compatible) │
+│                                                                    │
+│  Upload  \x1b[0;38;2;76;175;80m████████████████\x1b[0;2;38;2;76;175;80m░░░░░░░░\x1b[0m  67%                             │
+│  Result  \x1b[0;38;2;76;175;80m✓\x1b[0m Styled text, ready for the terminal.                    │
+╰────────────────────────────────────────────────────────────────────╯
 
-${ESC}[2mThe escape codes are there. You just don't have to see them.${ESC}[0m
-Switch to Source to look under the hood.
+\x1b[0;1mBOX DRAWING & BLOCKS\x1b[0m
+┌─┬─┐  ╔═╦═╗  ░▒▓█  ▁▂▃▄▅▆▇█  ← ↑ → ↓
+├─┼─┤  ╠═╬═╣
+└─┴─┘  ╚═╩═╝
+\x1b[0;2m─────────────────────────────────────────────────────────────────────\x1b[0m
+Select text → style it. Ω → insert characters.
+Source → inspect ANSI. Copy / Export → use it in your terminal.
+\x1b[0;2mYour draft stays in this browser. Reset → start here again.\x1b[0m
 `;

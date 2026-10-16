@@ -9,6 +9,8 @@ bun dev
 
 Select text and use the toolbar to format it. With a collapsed selection, formatting applies to what you type next. The character grid can be toggled off. Lines scroll horizontally without wrapping; tabs occupy four columns. Alt-drag makes a rectangular selection.
 
+The welcome example showcases text styles, conceal, background highlights, palette/256/RGB colors, separators, a rounded status box with a blinking indicator and block progress bar, and box-drawing characters. Use **Reset** to load it into an existing draft.
+
 Switch between **Visual** and **Source** with the shadcn tabs in the header. **Col** toggles the column ruler, hidden by default. **Blanks** toggles dots for spaces and each occupied tab cell, also off by default. Whitespace markers are display decorations, so copying and exporting preserve the original spaces and tabs.
 
 The dashed-rectangle toolbar toggle shows terminal bounds, starting at the first character of the first line. Choose **80 × 24** (VT100), **80 × 25** (PC console), or **132 × 24** (wide terminal) with the adjacent arrow. Sizes are columns × rows. The guide uses the measured character cells and scrolls with the document, including when the document is empty. It is a visual aid: it does not insert a box, constrain typing, or change exports. Bounds are hidden in source mode.
@@ -30,6 +32,8 @@ cat untitled.ans
 The primary **Copy source** icon copies readable ANSI source, using the same `\x1b` notation as Source mode. Its adjacent dropdown offers **Copy command to preview in terminal**, which copies a self-contained `printf` command for sh, bash, or zsh. Paste the command into your terminal to render the document. Quotes and shell syntax in the document print literally; backslashes and control characters are encoded for `printf`. The command resets formatting afterward and leaves the prompt on a fresh line. Copying requires browser clipboard access (HTTPS or localhost).
 
 The current document and filename are saved to this browser's local storage. No account, backend, or network storage is used. Opening another file replaces the current draft. Export files you want to keep.
+
+**Reset** in the bottom bar asks for confirmation with a standard shadcn Alert Dialog, then restores the default welcome example and the `untitled.ans` filename in either editor mode. Undo restores the previous document text and formatting. The adjacent **GitHub** link opens this repository in a new tab and uses the original Lucide GitHub icon from [Lucide 0.468.0](https://github.com/lucide-icons/lucide/blob/0.468.0/icons/github.svg), with its license included in `assets/lucide-github-LICENSE.txt`.
 
 | Shortcut | Action |
 | --- | --- |
@@ -59,7 +63,7 @@ The favicon and touch/home-screen icons reuse the header's Lucide Terminal symbo
 
 App controls use the standard shadcn `base-lyra` components configured in `components.json`, with the existing theme tokens. Install them with `bunx --bun shadcn@latest add <component>`. Custom CSS is limited to CodeMirror's cell geometry, grid, ruler, and ANSI effects; the color swatches show actual document colors. The generated label wrapper has a narrow Biome exception because its `htmlFor` is forwarded from the caller; color inputs supply matching IDs.
 
-The header's theme toggle offers Light, Dark, and System. `next-themes` follows the system preference by default and remembers explicit choices in browser storage. Both the app controls and editor use the existing light/dark theme tokens; explicit ANSI document colors remain document colors.
+The header's theme toggle offers Light, Dark, and System. `next-themes` defaults to Dark and remembers explicit choices in browser storage. Both the app controls and editor use the existing light/dark theme tokens; explicit ANSI document colors remain document colors.
 
 ```sh
 bun test

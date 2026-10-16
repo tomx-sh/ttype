@@ -41,6 +41,7 @@ import {
   Omega,
   Pilcrow,
   Redo2,
+  RotateCcw,
   Ruler,
   Siren,
   SquareDashed,
@@ -54,11 +55,23 @@ import {
 } from "lucide-react";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { CharacterPicker } from "@/components/character-picker";
+import { Github } from "@/components/icons/github";
 import { ModeToggle } from "@/components/mode-toggle";
 import { TerminalColorPicker } from "@/components/terminal-color-picker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {
   DropdownMenu,
@@ -258,6 +271,7 @@ export function TerminalEditor() {
     (typeof TERMINAL_SIZES)[number]
   >(TERMINAL_SIZES[0]);
   const [charactersOpen, setCharactersOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [sourceError, setSourceError] = useState("");
   const [saveStatus, setSaveStatus] = useState("Saved locally");
@@ -547,6 +561,40 @@ export function TerminalEditor() {
     } catch {
       setNotice("Could not read this file.");
     }
+  }
+
+  function resetDocument() {
+    const current = controller.current;
+    if (!current) return;
+    const document = parseAnsi(WELCOME);
+    current.view.dispatch({
+      changes: {
+        from: 0,
+        to: current.view.state.doc.length,
+        insert:
+          current.mode === "source" ? readableSource(WELCOME) : document.text,
+      },
+      effects:
+        current.mode === "visual"
+          ? replaceStyles.of({
+              styles: document.styles,
+              typing: document.styles[0] ?? {},
+            })
+          : [],
+      selection: { anchor: 0 },
+      annotations: isolateHistory.of("full"),
+      userEvent: "input.reset",
+      scrollIntoView: true,
+    });
+    setPlacementMode(false);
+    setName("untitled.ans");
+    try {
+      localStorage.setItem(NAME_KEY, "untitled.ans");
+    } catch {
+      /* The document can still be exported. */
+    }
+    current.view.focus();
+    setNotice("Welcome example restored");
   }
 
   function format(patch: Partial<TextStyle> | null, focus = true) {
@@ -972,7 +1020,7 @@ export function TerminalEditor() {
           </span>
           {snapshot.selected > 0 && <span>{snapshot.selected} selected</span>}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span>
             {snapshot.lines} lines · {snapshot.characters} chars
           </span>
@@ -981,6 +1029,48 @@ export function TerminalEditor() {
           </span>
           <span>UTF-8</span>
           <Badge variant="outline">ANSI SGR</Badge>
+          <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+            <AlertDialogTrigger
+              render={<Button variant="ghost" size="xs" />}
+              title="Restore the welcome example"
+            >
+              <RotateCcw />
+              Reset
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Restore the welcome example?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will replace your current document with the default
+                  welcome example and reset the filename to untitled.ans. You
+                  can undo the document change.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    resetDocument();
+                    setResetOpen(false);
+                  }}
+                >
+                  Reset
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <a
+            href="https://github.com/tomx-sh/ttype"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({ variant: "ghost", size: "xs" })}
+            title="View ttype on GitHub (opens in a new tab)"
+          >
+            <Github aria-hidden="true" />
+            GitHub
+          </a>
         </div>
       </footer>
       <CharacterPicker
