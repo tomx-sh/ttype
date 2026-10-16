@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 // The Google Fonts subsets omit box-drawing and block glyphs. Bundle the full
@@ -24,9 +25,39 @@ const jetbrainsMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "ttype — text with character",
-  description:
-    "A monospace editor for rich terminal documents. Style your text visually and export real ANSI escape codes.",
+  metadataBase: new URL(site.url),
+  title: {
+    default: site.title,
+    template: "%s | ttype",
+  },
+  description: site.description,
+  applicationName: site.name,
+  category: "developer tools",
+  openGraph: {
+    type: "website",
+    url: "/",
+    locale: "en_US",
+    siteName: site.name,
+    title: site.title,
+    description: site.description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: site.title,
+    description: site.description,
+    images: [{ url: "/opengraph-image.png", alt: site.imageAlt }],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

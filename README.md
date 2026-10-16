@@ -49,6 +49,12 @@ The app bundles the complete [official JetBrains Mono 2.305 variable fonts](http
 
 This is a document editor, not a terminal emulator. Cursor movement, screen clearing, OSC sequences (including hyperlinks), other terminal controls, and unsupported SGR attributes stay in source mode. They are preserved for editing/export; a message explains why visual mode cannot be used. Windows CRLF line endings are normalized to LF on file import.
 
+## Branding and metadata
+
+The production URL is `https://ttype.sh`. Shared site copy and URLs live in `src/lib/site.ts`; Next.js generates the canonical link, Open Graph and Twitter metadata, JSON-LD, `/robots.txt`, `/sitemap.xml`, and `/manifest.webmanifest` from the app's metadata files.
+
+The favicon and touch/home-screen icons reuse the header's Lucide Terminal symbol. `src/app/icon.svg` is the icon source; `assets/social-card.svg` is the editable source for the 1200 × 630 `src/app/opengraph-image.png` sharing image. The copied icon's license is included in `assets/lucide-LICENSE.txt`.
+
 ## Validation
 
 App controls use the standard shadcn `base-lyra` components configured in `components.json`, with the existing theme tokens. Install them with `bunx --bun shadcn@latest add <component>`. Custom CSS is limited to CodeMirror's cell geometry, grid, ruler, and ANSI effects; the color swatches show actual document colors. The generated label wrapper has a narrow Biome exception because its `htmlFor` is forwarded from the caller; color inputs supply matching IDs.
