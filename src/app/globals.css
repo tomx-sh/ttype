@@ -159,8 +159,26 @@
   font-variant-ligatures: none;
 }
 .editor-host .cm-content {
+  position: relative;
   padding: 23px 0 max(30px, 35vh);
   caret-color: var(--foreground);
+}
+.placement-mode .editor-host .cm-content,
+.placement-mode .editor-host .cm-content * {
+  /* Apply directly to editable rows and ANSI spans, not just their parent. */
+  cursor: crosshair;
+}
+.placement-mode .editor-host .cm-content[data-placement-hover]::before {
+  content: "";
+  position: absolute;
+  top: calc(23px + var(--placement-row) * var(--cell-height, 1lh));
+  left: calc(18px + var(--placement-column) * var(--cell-width, 1ch));
+  width: var(--cell-width, 1ch);
+  height: var(--cell-height, 1lh);
+  background: color-mix(in oklab, var(--primary) 18%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklab, var(--primary) 40%, transparent);
+  pointer-events: none;
 }
 .editor-host .cm-line {
   height: 1lh;
@@ -183,7 +201,6 @@
   background-repeat: repeat-x;
 }
 .has-terminal-guide .editor-host .cm-content {
-  position: relative;
   /* Keep the whole guide scrollable even in an empty document. The padding
      matches cm-content and cm-line; it does not consume terminal cells. */
   min-width: calc(var(--terminal-columns) * var(--cell-width, 1ch) + 50px);

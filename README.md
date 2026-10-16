@@ -17,6 +17,8 @@ The toolbar shows every text style directly: bold, dim, italic, underline, doubl
 
 **Insert TUI characters** (the Ω icon in the toolbar) opens a dialog with box-drawing characters, blocks, shading, arrows, symbols, and ASCII characters. Click to insert at the current cursor or replace the selection. The dialog stays open for repeated insertions; close it with **Done** or Escape. Inserted characters use the current formatting and support undo/redo. The picker also works in source mode.
 
+**Place cursor anywhere** (the Locate Fixed icon beside Ω) enables a crosshair in Visual mode and highlights the hovered cell, even with grid lines hidden. Click a cell, then type or use the character library. Clicking beyond a line adds spaces; clicking below the document adds new lines and spaces on the destination line. Existing text is preserved, and padding supports undo/redo. Click the tool again or press Escape to exit. Switching modes or opening a file also exits placement mode.
+
 **Source** shows editable ANSI sequences using readable `\x1b` notation. Literal backslashes are doubled in this view so that source conversion is reversible. Switching back applies the changes to the visual document. Formatting and typing support undo/redo, including changes brought back from source mode.
 
 **Open** imports UTF-8 `.ans`, `.ansi`, or `.txt` files up to 2 MB. **Export** downloads actual ESC bytes, ready for terminal rendering:

@@ -37,6 +37,7 @@ import {
   Grid2X2,
   Info,
   Italic,
+  LocateFixed,
   Omega,
   Pilcrow,
   Redo2,
@@ -81,6 +82,7 @@ import {
   type TextStyle,
   WELCOME,
 } from "@/lib/ansi";
+import { placeCursorAtClick, placementCellHover } from "@/lib/cell-placement";
 import {
   formatSelection,
   getDocument,
@@ -139,6 +141,9 @@ function editorExtensions(
   onUpdate: () => void,
   onToggle: () => void,
   onSave: () => void,
+  onPlace: (view: EditorView, event: MouseEvent) => boolean,
+  onEscape: () => boolean,
+  isPlacing: () => boolean,
 ) {
   return [
     history(),
@@ -150,6 +155,10 @@ function editorExtensions(
     highlightWhitespace(),
     rectangularSelection(),
     crosshairCursor(),
+    placementCellHover(isPlacing),
+    EditorView.domEventHandlers({
+      mousedown: (event, view) => onPlace(view, event),
+    }),
     EditorState.tabSize.of(4),
     EditorView.contentAttributes.of({
       "aria-label": "Terminal document",
@@ -158,6 +167,7 @@ function editorExtensions(
       autocorrect: "off",
     }),
     keymap.of([
+      { key: "Escape", run: onEscape },
       { key: "Mod-b", run: (view) => toggleAttribute(view, "bold") },
       { key: "Mod-i", run: (view) => toggleAttribute(view, "italic") },
       { key: "Mod-u", run: (view) => toggleAttribute(view, "underline") },
@@ -234,6 +244,8 @@ export function TerminalEditor() {
   const ruler = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const controller = useRef<Controller | null>(null);
+  const placement = useRef(false);
+  const [placing, setPlacing] = useState(false);
   const actions = useRef({ toggle: () => {}, save: () => {} });
   const [mode, setMode] = useState<Mode>("visual");
   const [name, setName] = useState("untitled.ans");
@@ -316,6 +328,17 @@ export function TerminalEditor() {
       refresh,
       () => actions.current.toggle(),
       () => actions.current.save(),
+      (view, event) =>
+        placement.current && controller.current?.mode === "visual"
+          ? placeCursorAtClick(view, event)
+          : false,
+      () => {
+        if (!placement.current) return false;
+        placement.current = false;
+        setPlacing(false);
+        return true;
+      },
+      () => placement.current && controller.current?.mode === "visual",
     );
     let initialMode: Mode = "visual";
     let richState = richEditorState(parseAnsi(WELCOME), extensions);
@@ -388,6 +411,7 @@ export function TerminalEditor() {
   function switchMode(focus = true) {
     const current = controller.current;
     if (!current) return;
+    setPlacementMode(false);
     if (current.mode === "visual") {
       current.richState = current.view.state;
       current.sourceOriginal = serializeAnsi(getDocument(current.view.state));
@@ -508,6 +532,7 @@ export function TerminalEditor() {
       }
       current.sourceState = undefined;
       current.sourceOriginal = raw;
+      setPlacementMode(false);
       current.view.setState(state);
       setMode(current.mode);
       setName(file.name);
@@ -532,6 +557,11 @@ export function TerminalEditor() {
   function toggle(key: keyof TextStyle, focus = true) {
     const current = controller.current;
     if (current?.mode === "visual") toggleAttribute(current.view, key, focus);
+  }
+
+  function setPlacementMode(enabled: boolean) {
+    placement.current = enabled;
+    setPlacing(enabled);
   }
 
   const source = mode === "source";
@@ -775,10 +805,24 @@ export function TerminalEditor() {
         >
           <Omega />
         </Button>
+        <Toggle
+          aria-label="Place cursor anywhere"
+          title="Place cursor anywhere (Escape to exit)"
+          pressed={placing}
+          disabled={source}
+          onPressedChange={(pressed) => {
+            setPlacementMode(pressed);
+            controller.current?.view.focus();
+          }}
+        >
+          <LocateFixed />
+        </Toggle>
         <span className="ml-2 hidden text-xs text-muted-foreground lg:inline">
           {source
             ? "Escape codes are shown as \\x1b"
-            : "Select text to style it"}
+            : placing
+              ? "Click a cell, then type or insert a character · Esc to exit"
+              : "Select text to style it"}
         </span>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <Toggle
@@ -884,7 +928,7 @@ export function TerminalEditor() {
           </Alert>
         )}
         <div
-          className={`editor-workspace relative flex min-h-0 flex-1 flex-col${showBounds && !source ? " has-terminal-guide" : ""}`}
+          className={`editor-workspace relative flex min-h-0 flex-1 flex-col${showBounds && !source ? " has-terminal-guide" : ""}${placing ? " placement-mode" : ""}`}
           style={
             {
               "--terminal-columns": terminalSize.columns,
