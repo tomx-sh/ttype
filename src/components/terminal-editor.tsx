@@ -589,24 +589,7 @@ export function TerminalEditor() {
           <Terminal />
           <h1>ttype</h1>
         </div>
-        <span aria-hidden="true" className="shrink-0 text-muted-foreground">
-          ·
-        </span>
-        <Input
-          className="w-44"
-          aria-label="Document filename"
-          value={name}
-          spellCheck={false}
-          onChange={(event) => {
-            setName(event.target.value);
-            try {
-              localStorage.setItem(NAME_KEY, event.target.value);
-            } catch {
-              /* Filename is still used for export. */
-            }
-          }}
-        />
-        <div className="order-last flex w-full items-center justify-center gap-2 lg:absolute lg:left-1/2 lg:w-auto lg:-translate-x-1/2">
+        <div className="order-last flex w-full items-center justify-center gap-2 xl:absolute xl:left-1/2 xl:w-auto xl:-translate-x-1/2">
           <TabsList aria-label="Editor mode">
             <TabsTrigger value="visual" aria-label="Visual mode">
               <Eye />
@@ -660,6 +643,20 @@ export function TerminalEditor() {
             <Upload />
             Open
           </Button>
+          <Input
+            className="w-44"
+            aria-label="Document filename"
+            value={name}
+            spellCheck={false}
+            onChange={(event) => {
+              setName(event.target.value);
+              try {
+                localStorage.setItem(NAME_KEY, event.target.value);
+              } catch {
+                /* Filename is still used for export. */
+              }
+            }}
+          />
           <Button
             variant="outline"
             onClick={exportFile}
