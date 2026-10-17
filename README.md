@@ -2,6 +2,8 @@
 
 A fullscreen, monospace editor for ANSI terminal documents, built with Next.js and CodeMirror 6.
 
+<img width="1464" height="954" alt="Capture d’écran 2026-10-17 à 12 21 29" src="https://github.com/user-attachments/assets/1f24c6d8-5534-43ee-8bb1-e825b2535501" />
+
 ```sh
 bun install
 bun dev
