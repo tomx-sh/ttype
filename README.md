@@ -17,6 +17,8 @@ The dashed-rectangle toolbar toggle shows terminal bounds, starting at the first
 
 The toolbar shows every text style directly: bold, dim, italic, underline, double underline, strikethrough, overline, blink, reverse colors, and conceal. Foreground/background controls offer palette colors and any RGB color. Concealed text is invisible in visual mode; remove the attribute or use source mode to edit it.
 
+**Copy style** and **Paste style** in the formatting toolbar transfer all text attributes and foreground/background colors in Visual mode. Copy uses the active typing style at the caret, or the first selected character for a selection with mixed styles. Paste replaces formatting across the selection (including rectangular selections), or sets the style for future typing at a caret. Pasting supports undo/redo. The copied style stays available for this editor session and leaves the system clipboard unchanged.
+
 **Insert TUI characters** (the Ω icon in the toolbar) opens a dialog with box-drawing characters, blocks, shading, arrows, symbols, and ASCII characters. Click to insert at the current cursor or replace the selection. The dialog stays open for repeated insertions; close it with **Done** or Escape. Inserted characters use the current formatting and support undo/redo. The picker also works in source mode.
 
 **Place cursor anywhere** (the Locate Fixed icon beside Ω) enables a crosshair in Visual mode and highlights the hovered cell, even with grid lines hidden. Click a cell, then type or use the character library. Clicking beyond a line adds spaces; clicking below the document adds new lines and spaces on the destination line. Existing text is preserved, and padding supports undo/redo. Click the tool again or press Escape to exit. Switching modes or opening a file also exits placement mode.
@@ -38,6 +40,8 @@ The current document and filename are saved to this browser's local storage. No 
 | Shortcut | Action |
 | --- | --- |
 | ⌘/Ctrl B, I, U | Bold, italic, underline |
+| ⌘⌥C / Ctrl+Alt+C | Copy style (Visual mode) |
+| ⌘⌥V / Ctrl+Alt+V | Paste style (Visual mode) |
 | ⌘/Ctrl Z | Undo |
 | ⌘/Ctrl Shift Z | Redo |
 | ⌘/Ctrl Shift E | Toggle visual/source mode |

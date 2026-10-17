@@ -6,7 +6,12 @@ import {
   StateField,
   type TransactionSpec,
 } from "@codemirror/state";
-import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
+import {
+  Decoration,
+  type DecorationSet,
+  EditorView,
+  type KeyBinding,
+} from "@codemirror/view";
 import { type AnsiDocument, sameStyle, type TextStyle } from "./ansi";
 
 export type RichState = { styles: TextStyle[]; typing: TextStyle };
@@ -174,17 +179,58 @@ export function initialStyles(document: AnsiDocument) {
   }));
 }
 
-export function formatSelection(
-  view: {
-    state: EditorState;
-    dispatch: (spec: TransactionSpec) => void;
-    focus: () => void;
-  },
-  patch: Partial<TextStyle> | null,
-  focus = true,
+type FormattingView = {
+  state: EditorState;
+  dispatch: (spec: TransactionSpec) => void;
+  focus: () => void;
+};
+
+function updateSelectionStyles(
+  view: FormattingView,
+  apply: (style: TextStyle) => TextStyle,
+  focus: boolean,
 ) {
   const current = view.state.field(richStyles);
   const styles = current.styles.slice();
+  for (const range of view.state.selection.ranges) {
+    for (let i = range.from; i < range.to; i++) styles[i] = apply(styles[i]);
+  }
+  view.dispatch({
+    effects: replaceStyles.of({ styles, typing: apply(current.typing) }),
+    annotations: isolateHistory.of("full"),
+    userEvent: "format",
+  });
+  if (focus) view.focus();
+}
+
+export function copyStyle(state: EditorState): TextStyle {
+  return { ...styleAt(state) };
+}
+
+export function styleClipboardKeymap(
+  onCopy: () => boolean,
+  onPaste: () => boolean,
+): KeyBinding[] {
+  return [
+    { key: "Mod-Alt-c", run: onCopy },
+    { key: "Mod-Alt-v", run: onPaste },
+  ];
+}
+
+export function pasteStyle(
+  view: FormattingView,
+  style: TextStyle,
+  focus = true,
+) {
+  const copied = { ...style };
+  updateSelectionStyles(view, () => copied, focus);
+}
+
+export function formatSelection(
+  view: FormattingView,
+  patch: Partial<TextStyle> | null,
+  focus = true,
+) {
   const apply = (style: TextStyle): TextStyle => {
     if (!patch) return {};
     const next = { ...style, ...patch };
@@ -195,15 +241,7 @@ export function formatSelection(
     }
     return next;
   };
-  for (const range of view.state.selection.ranges) {
-    for (let i = range.from; i < range.to; i++) styles[i] = apply(styles[i]);
-  }
-  view.dispatch({
-    effects: replaceStyles.of({ styles, typing: apply(current.typing) }),
-    annotations: isolateHistory.of("full"),
-    userEvent: "format",
-  });
-  if (focus) view.focus();
+  updateSelectionStyles(view, apply, focus);
 }
 
 export function getDocument(state: EditorState): AnsiDocument {

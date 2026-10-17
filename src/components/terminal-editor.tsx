@@ -35,11 +35,12 @@ import {
   Eye,
   EyeOff,
   Grid2X2,
-  Info,
   Italic,
   LocateFixed,
   Omega,
+  Paintbrush,
   Pilcrow,
+  Pipette,
   Redo2,
   RotateCcw,
   Ruler,
@@ -97,13 +98,16 @@ import {
 } from "@/lib/ansi";
 import { placeCursorAtClick, placementCellHover } from "@/lib/cell-placement";
 import {
+  copyStyle,
   formatSelection,
   getDocument,
   initialStyles,
+  pasteStyle,
   replaceStyles,
   richHistory,
   richStyles,
   styleAt,
+  styleClipboardKeymap,
 } from "@/lib/editor-state";
 import { terminalCommand } from "@/lib/terminal-command";
 
@@ -154,6 +158,8 @@ function editorExtensions(
   onUpdate: () => void,
   onToggle: () => void,
   onSave: () => void,
+  onCopyStyle: () => boolean,
+  onPasteStyle: () => boolean,
   onPlace: (view: EditorView, event: MouseEvent) => boolean,
   onEscape: () => boolean,
   isPlacing: () => boolean,
@@ -184,6 +190,7 @@ function editorExtensions(
       { key: "Mod-b", run: (view) => toggleAttribute(view, "bold") },
       { key: "Mod-i", run: (view) => toggleAttribute(view, "italic") },
       { key: "Mod-u", run: (view) => toggleAttribute(view, "underline") },
+      ...styleClipboardKeymap(onCopyStyle, onPasteStyle),
       {
         key: "Mod-Shift-e",
         run: () => {
@@ -259,7 +266,13 @@ export function TerminalEditor() {
   const controller = useRef<Controller | null>(null);
   const placement = useRef(false);
   const [placing, setPlacing] = useState(false);
-  const actions = useRef({ toggle: () => {}, save: () => {} });
+  const actions = useRef({
+    toggle: () => {},
+    save: () => {},
+    copyStyle: (): boolean => false,
+    pasteStyle: (): boolean => false,
+  });
+  const [copiedStyle, setCopiedStyle] = useState<TextStyle | null>(null);
   const [mode, setMode] = useState<Mode>("visual");
   const [name, setName] = useState("untitled.ans");
   const [viewTools, setViewTools] = useState<string[]>(["grid"]);
@@ -342,6 +355,8 @@ export function TerminalEditor() {
       refresh,
       () => actions.current.toggle(),
       () => actions.current.save(),
+      () => actions.current.copyStyle(),
+      () => actions.current.pasteStyle(),
       (view, event) =>
         placement.current && controller.current?.mode === "visual"
           ? placeCursorAtClick(view, event)
@@ -523,7 +538,12 @@ export function TerminalEditor() {
   }
 
   useEffect(() => {
-    actions.current = { toggle: switchMode, save: exportFile };
+    actions.current = {
+      toggle: switchMode,
+      save: exportFile,
+      copyStyle: copyDocumentStyle,
+      pasteStyle: pasteDocumentStyle,
+    };
   });
 
   async function openFile(file: File) {
@@ -597,6 +617,27 @@ export function TerminalEditor() {
     setNotice("Welcome example restored");
   }
 
+  function copyDocumentStyle(): boolean {
+    const current = controller.current;
+    if (current?.mode !== "visual") return false;
+    setCopiedStyle(copyStyle(current.view.state));
+    current.view.focus();
+    setNotice("Style copied");
+    return true;
+  }
+
+  function pasteDocumentStyle(): boolean {
+    const current = controller.current;
+    if (current?.mode !== "visual") return false;
+    if (copiedStyle === null) {
+      setNotice("Copy a style first");
+      return true;
+    }
+    pasteStyle(current.view, copiedStyle);
+    setNotice("Style pasted");
+    return true;
+  }
+
   function format(patch: Partial<TextStyle> | null, focus = true) {
     const current = controller.current;
     if (current?.mode === "visual") formatSelection(current.view, patch, focus);
@@ -633,9 +674,18 @@ export function TerminalEditor() {
       className={`h-dvh gap-0 overflow-hidden${grid ? " has-grid" : ""}${showWhitespace ? " show-whitespace" : ""}`}
     >
       <header className="relative flex shrink-0 flex-wrap items-center gap-2 border-b p-2">
-        <div className="flex items-center gap-2">
-          <Terminal />
-          <h1>ttype</h1>
+        <div className="flex min-w-24 flex-1 items-center gap-3 xl:max-w-sm">
+          <div className="flex shrink-0 items-center gap-2">
+            <Terminal />
+            <h1>ttype</h1>
+          </div>
+          <output
+            aria-atomic="true"
+            title={notice || undefined}
+            className="min-w-0 truncate text-xs text-muted-foreground"
+          >
+            {notice}
+          </output>
         </div>
         <div className="order-last flex w-full items-center justify-center gap-2 xl:absolute xl:left-1/2 xl:w-auto xl:-translate-x-1/2">
           <TabsList aria-label="Editor mode">
@@ -823,6 +873,30 @@ export function TerminalEditor() {
             editorFocus={editorFocus}
           />
         ))}
+        <ButtonGroup aria-label="Style clipboard">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Copy style"
+            aria-keyshortcuts="Meta+Alt+C Control+Alt+C"
+            title="Copy style (⌘⌥C / Ctrl+Alt+C)"
+            disabled={source}
+            onClick={copyDocumentStyle}
+          >
+            <Pipette />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Paste style"
+            aria-keyshortcuts="Meta+Alt+V Control+Alt+V"
+            title="Paste style (⌘⌥V / Ctrl+Alt+V)"
+            disabled={source || copiedStyle === null}
+            onClick={pasteDocumentStyle}
+          >
+            <Paintbrush />
+          </Button>
+        </ButtonGroup>
         <Button
           variant="ghost"
           size="icon"
@@ -960,12 +1034,6 @@ export function TerminalEditor() {
         keepMounted
         className="flex min-h-0 flex-1 flex-col"
       >
-        {notice && (
-          <Alert>
-            <Info />
-            <AlertDescription>{notice}</AlertDescription>
-          </Alert>
-        )}
         {sourceError && (
           <Alert variant="destructive">
             <TriangleAlert />
