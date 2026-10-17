@@ -87,6 +87,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toggle } from "@/components/ui/toggle";
+import { highlightActiveColumn } from "@/lib/active-column";
 import {
   type AnsiDocument,
   parseAnsi,
@@ -109,6 +110,7 @@ import {
   styleAt,
   styleClipboardKeymap,
 } from "@/lib/editor-state";
+import { richClipboard } from "@/lib/rich-clipboard";
 import { terminalCommand } from "@/lib/terminal-command";
 
 type Mode = "visual" | "source";
@@ -170,10 +172,12 @@ function editorExtensions(
     dropCursor(),
     lineNumbers(),
     highlightActiveLine(),
+    highlightActiveColumn,
     highlightActiveLineGutter(),
     highlightWhitespace(),
     rectangularSelection(),
     crosshairCursor(),
+    richClipboard,
     placementCellHover(isPlacing),
     EditorView.domEventHandlers({
       mousedown: (event, view) => onPlace(view, event),

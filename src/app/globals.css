@@ -147,6 +147,7 @@
   width: calc(var(--cell-width, 1ch) * 10);
 }
 .editor-host .cm-editor {
+  --active-cell-highlight: color-mix(in oklab, var(--muted) 35%, transparent);
   background: transparent;
   color: var(--foreground);
   font-size: 14px;
@@ -162,6 +163,18 @@
   position: relative;
   padding: 23px 0 max(30px, 35vh);
   caret-color: var(--foreground);
+  background-image: linear-gradient(
+    var(--active-cell-highlight),
+    var(--active-cell-highlight)
+  );
+  background-position: calc(
+      18px +
+      var(--active-column, 0) *
+      var(--cell-width, 1ch)
+    )
+    23px;
+  background-size: var(--cell-width, 1ch) calc(100% - 23px);
+  background-repeat: no-repeat;
 }
 .placement-mode .editor-host .cm-content,
 .placement-mode .editor-host .cm-content * {
@@ -228,6 +241,7 @@
 .has-grid .editor-host .cm-content {
   /* A continuous gradient avoids rounding each fractional-width cell tile. */
   background-image:
+    linear-gradient(var(--active-cell-highlight), var(--active-cell-highlight)),
     repeating-linear-gradient(
       to right,
       color-mix(in oklab, var(--foreground) 4%, transparent) 0 1px,
@@ -238,7 +252,14 @@
       color-mix(in oklab, var(--foreground) 4%, transparent) 0 1px,
       transparent 1px var(--cell-height, 1lh)
     );
-  background-position: 18px 23px;
+  background-position:
+    calc(18px + var(--active-column, 0) * var(--cell-width, 1ch)) 23px,
+    18px 23px,
+    18px 23px;
+  background-size:
+    var(--cell-width, 1ch) calc(100% - 23px),
+    auto,
+    auto;
   background-repeat: no-repeat;
 }
 .editor-host .cm-gutters {
@@ -259,7 +280,7 @@
   color: var(--foreground);
 }
 .editor-host .cm-activeLine {
-  background: color-mix(in oklab, var(--muted) 35%, transparent);
+  background: var(--active-cell-highlight);
 }
 .editor-host .cm-focused {
   outline: none;

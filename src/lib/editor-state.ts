@@ -17,6 +17,12 @@ import { type AnsiDocument, sameStyle, type TextStyle } from "./ansi";
 export type RichState = { styles: TextStyle[]; typing: TextStyle };
 export const replaceStyles = StateEffect.define<RichState>();
 type StyleRange = { from: number; styles: TextStyle[] };
+export const insertedStyles = StateEffect.define<StyleRange>({
+  map: (range, changes) => ({
+    from: changes.mapPos(range.from, 1),
+    styles: range.styles,
+  }),
+});
 const restoreRanges = StateEffect.define<StyleRange[]>({
   map(ranges, changes) {
     const mapped: StyleRange[] = [];
@@ -114,9 +120,16 @@ export const richStyles = StateField.define<RichState>({
       const index = position > 0 ? position - 1 : 0;
       next = { ...value, typing: value.styles[index] ?? {} };
     }
+    let pasted = false;
     for (const effect of transaction.effects) {
       if (effect.is(replaceStyles)) next = effect.value;
-      else if (effect.is(restoreTyping))
+      else if (effect.is(insertedStyles)) {
+        const styles = next.styles.slice();
+        for (let i = 0; i < effect.value.styles.length; i++)
+          styles[effect.value.from + i] = effect.value.styles[i];
+        next = { ...next, styles };
+        pasted = true;
+      } else if (effect.is(restoreTyping))
         next = { ...next, typing: effect.value };
       else if (effect.is(restoreRanges)) {
         const styles = next.styles.slice();
@@ -127,6 +140,13 @@ export const richStyles = StateField.define<RichState>({
         next = { ...next, styles };
       }
     }
+    if (pasted)
+      next = {
+        ...next,
+        typing:
+          next.styles[Math.max(0, transaction.newSelection.main.head - 1)] ??
+          {},
+      };
     return next;
   },
   provide: (field) => EditorView.decorations.from(field, decorations),

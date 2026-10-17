@@ -14,5 +14,5 @@ export function terminalCommand(document: string): string {
       }
     } else argument += character;
   }
-  return `printf '%b' '${argument.replaceAll("'", "'\\''")}'`;
+  return `clear; printf '%b' '${argument.replaceAll("'", "'\\''")}'`;
 }
